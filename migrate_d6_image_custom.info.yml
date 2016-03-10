@@ -1,0 +1,4 @@
+name: Custom Drupal6 Image Migration
+type: module
+description: Custom Drupal6 Image Migration related improvements
+core: 8.x

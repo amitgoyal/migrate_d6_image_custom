@@ -1,0 +1,45 @@
+<?php
+
+/**
+ * @file
+ * Contains migrate_d6_image_custom.module.
+ */
+
+use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Plugin\MigrateSourceInterface;
+use Drupal\migrate\Row;
+
+/**
+ * Implements hook_migrate_prepare_row().
+ */
+function migrate_d6_image_custom_migrate_prepare_row(Row $row, MigrateSourceInterface $source, MigrationInterface $migration) {
+  // ID from the migrate.migration.d6_node__page_custom.yml.
+  if ($migration->id() == 'd6_node__page_custom') {
+    // Loads all the d6 images for a given node.
+    $nid = $row->getSourceProperty('nid');
+    $query = $source->getDatabase()->select('image_attach', 'ia');
+    $query->join('image', 'i', 'ia.iid = i.nid');
+    $query->join('node', 'n', 'n.nid = ia.iid');
+    $query->fields('i', array('fid'))
+      ->fields('n', array('title'))
+      ->condition('ia.nid', $nid)
+      ->condition('i.image_size', '_original')
+      ->orderby('ia.weight');
+    $images_data = $query->execute()->fetchAll();
+
+    // Plugin d6_cck_file requires the file data in this format.
+    $field_image_attach_data = array();
+    foreach ($images_data as $image_data) {
+      $options = array(
+        'title' => $image_data->title,
+      );
+      $field_image_attach_data[] = array(
+        'fid' => $image_data->fid,
+        'data' => serialize($options),
+      );
+    }
+
+    // We are setting up source field 'field_page_image'.
+    $row->setSourceProperty('field_page_image', $field_image_attach_data);
+  }
+}
